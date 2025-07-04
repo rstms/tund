@@ -75,8 +75,10 @@ func (t *Tunnel) ListenUdp() error {
 					log.Printf("dropping UDP packet from unexpected source IP: %+v", source)
 				} else {
 					if t.raddr.Compare(saddr) != 0 || t.rport != uint16(source.Port) {
+						t.raddr = saddr
+						t.rport = uint16(source.Port)
 						t.remote = netip.AddrPortFrom(saddr, uint16(source.Port))
-						log.Printf("resetting remote: %+v\n", t.remote)
+						log.Printf("resetting remote to: %+v\n", t.remote)
 					}
 					t.urx <- buf
 				}
