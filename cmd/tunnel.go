@@ -63,11 +63,9 @@ func (t *Tunnel) ListenUdp() error {
 				return
 			}
 			if count > 0 {
-				if source.IP.Equal(remoteAddr.IP) && source.Port == remoteAddr.Port {
+				if source.IP.Equal(remoteAddr.IP) {
 					t.urx <- buf
 				} else {
-					log.Printf("source: %+v\n", source)
-					log.Printf("remote: %+v\n", remoteAddr)
 					log.Printf("ignoring packet from unexpected source: %+v", source)
 				}
 			}
