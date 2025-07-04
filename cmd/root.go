@@ -40,7 +40,7 @@ import (
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Version: "0.0.4",
+	Version: "0.0.5",
 	Use:     "tund",
 	Short:   "tun connection daemon",
 	Long: `
