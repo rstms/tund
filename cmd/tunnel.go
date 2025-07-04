@@ -12,7 +12,11 @@ import (
 const RXBUFLEN = 2048
 
 type Tunnel struct {
+	laddr   netip.Addr
+	lport   uint16
 	local   netip.AddrPort
+	raddr   netip.Addr
+	rport   uint16
 	remote  netip.AddrPort
 	tunnel  int
 	urx     chan []byte
@@ -33,7 +37,11 @@ func NewTunnel(tunnel int, localAddr string, localPort int, remoteAddr string, r
 		return nil, err
 	}
 	t := Tunnel{
+		laddr:   local,
+		lport:   uint16(localPort),
 		local:   netip.AddrPortFrom(local, uint16(localPort)),
+		raddr:   remote,
+		rport:   uint16(remotePort),
 		remote:  netip.AddrPortFrom(remote, uint16(remotePort)),
 		tunnel:  tunnel,
 		urx:     make(chan []byte),
@@ -54,7 +62,6 @@ func (t *Tunnel) ListenUdp() error {
 	go func() {
 		defer t.wg.Done()
 		defer close(t.urx)
-		remoteAddr := net.UDPAddrFromAddrPort(t.remote)
 		for {
 			buf := make([]byte, RXBUFLEN)
 			count, source, err := conn.ReadFromUDP(buf)
@@ -63,10 +70,18 @@ func (t *Tunnel) ListenUdp() error {
 				return
 			}
 			if count > 0 {
-				if source.IP.Equal(remoteAddr.IP) {
-					t.urx <- buf
+				saddr, ok := netip.AddrFromSlice(source.IP)
+				if !ok {
+					log.Printf("unexpected source IP: %+v", source)
+				} else if t.raddr.Compare(saddr) != 0 {
+					log.Printf("dropping UDP packet from unexpected source IP: %+v", source)
 				} else {
-					log.Printf("ignoring packet from unexpected source: %+v", source)
+					if t.rport != uint16(source.Port) {
+						t.rport = uint16(source.Port)
+						t.remote = netip.AddrPortFrom(t.raddr, t.rport)
+						log.Printf("resetting remote port: %+v\n", t.remote)
+					}
+					t.urx <- buf
 				}
 			}
 		}
