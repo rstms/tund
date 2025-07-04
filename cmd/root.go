@@ -34,46 +34,47 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var cfgFile string
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Version: "0.0.1",
 	Use:     "tund",
-	Short:   "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Short:   "tun connection daemon",
+	Long: `
+Connect a local tun device with a tun device on a remote peer, exchanging packets via UDP
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		tun := viper.GetInt("tunnel")
+		laddr := viper.GetString("laddr")
+		lport := viper.GetInt("lport")
+		raddr := viper.GetString("raddr")
+		rport := viper.GetInt("rport")
+		verbose := viper.GetBool("verbose")
+		tunnel, err := NewTunnel(tun, laddr, lport, raddr, rport, verbose)
+		cobra.CheckErr(err)
+		err = tunnel.Run()
+		cobra.CheckErr(err)
+	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
-
 func init() {
 	cobra.OnInitialize(InitConfig)
 	OptionString("logfile", "l", "", "log filename")
 	OptionString("config", "c", "", "config file")
+	OptionString("tunnel", "t", "0", "tunnel device index")
+	OptionString("laddr", "a", "0.0.0.0", "local IP address")
+	OptionString("lport", "p", "2000", "local UDP port")
+	OptionString("raddr", "r", "", "remote IP address")
+	OptionString("rport", "P", "2000", "remote UDP port")
 	OptionSwitch("debug", "", "produce debug output")
 	OptionSwitch("verbose", "v", "increase verbosity")
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
 }
